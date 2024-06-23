@@ -1,96 +1,82 @@
-package com.example.easy_transport.onBoarding
+package com.example.easy_transport.views.onBoarding
 
-
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowLeft
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.easy_transport.R
-import com.google.accompanist.pager.ExperimentalPagerApi
-import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.HorizontalPagerIndicator
-import com.google.accompanist.pager.rememberPagerState
+import com.example.easy_transport.model.OnBoardingItem
+import com.example.easy_transport.viewmodel.OnBoardingViewModel
+import com.example.easy_transport.viewmodel.OnBoardingViewModelFactory
+import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
-
-
-@Composable
-@Preview
-fun TopSection() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp)
-    ) {
-
-        IconButton(
-            onClick = { },
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
-            Icon(Icons.Outlined.KeyboardArrowLeft, null)
-        }
-
-        TextButton(
-            onClick = { /* Main Screen */ },
-            modifier = Modifier.align(Alignment.CenterEnd)
-        ) {
-            Text(text = "Passer", color = MaterialTheme.colors.onBackground)
-        }
-    }
-}
 
 @ExperimentalPagerApi
 @Composable
-@Preview
-fun OnBoarding() {
-    val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize()) {
-        val items = OnBoardingItem.get()
-        val statePager = rememberPagerState()
-        TopSection()
-        HorizontalPager(
-            state = statePager,
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(0.8f),
-            count = items.size
-        ) { page ->
-            OnBoardingItem(items[page], page)
+fun OnBoardingScreen(navController: NavController = rememberNavController()) {
+    val context = LocalContext.current
+    val viewModel: OnBoardingViewModel = viewModel(factory = OnBoardingViewModelFactory(context))
+    val isOnBoardingCompleted by viewModel.isOnBoardingCompleted.collectAsState()
+
+    if (isOnBoardingCompleted) {
+        LaunchedEffect(Unit) {
+            navController.navigate("auth") {
+                popUpTo("onBoarding") { inclusive = true }
+            }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-
-            HorizontalPagerIndicator(
-                pagerState = statePager,
+    } else {
+        val scope = rememberCoroutineScope()
+        Column(Modifier.fillMaxSize()) {
+            val items = OnBoardingItem.get()
+            val statePager = rememberPagerState()
+            TopSection(navController, viewModel)
+            HorizontalPager(
+                state = statePager,
                 modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.CenterVertically)
-            )
+                    .fillMaxSize()
+                    .weight(0.8f),
+                count = items.size
+            ) { page ->
+                OnBoardingItem(items[page], page)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
 
-            BottomSection(size = items.size, index = statePager.currentPage) {
-                if (statePager.currentPage + 1 < items.size) {
+                HorizontalPagerIndicator(
+                    pagerState = statePager,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterVertically)
+                )
 
-                    scope.launch {
-                        statePager.animateScrollToPage(statePager.currentPage + 1)
+                BottomSection(size = items.size, index = statePager.currentPage, viewModel,navController) {
+                    if (statePager.currentPage + 1 < items.size) {
+                        scope.launch {
+                            statePager.animateScrollToPage(statePager.currentPage + 1)
+                        }
                     }
                 }
             }
@@ -98,29 +84,76 @@ fun OnBoarding() {
     }
 }
 
-
-@ExperimentalPagerApi
 @Composable
+fun TopSection(navController: NavController, viewModel: OnBoardingViewModel) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+    ) {
+        TextButton(
+            onClick = {
+                viewModel.setOnBoardingCompleted()
+                navController.navigate("auth") {
+                    popUpTo("onBoarding") { inclusive = true }
+                }
+            },
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            Text(text = "Passer", color = MaterialTheme.colors.onBackground)
+        }
+    }
+}
 
+
+
+@Composable
 fun BottomSection(
     size: Int,
     index: Int,
+    viewModel: OnBoardingViewModel,
+    navController: NavController,
     onNextClicked: () -> Unit
 ) {
+    val animatedSize by animateDpAsState(targetValue = if (index == size - 1) 72.dp else 56.dp,
+        label = ""
+    )
+
     Box(
-        modifier = Modifier.padding(12.dp)
+        modifier = Modifier
+            .padding(12.dp)
+            .size(animatedSize)
+            .clip(CircleShape)
+            .border(
+                width = 2.dp,
+                color = colorResource(id = R.color.teal_200),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        val buttontext = if (size == index + 1) "Démarrer" else "Suivant"
         FloatingActionButton(
-            onClick = onNextClicked,
-            modifier = Modifier.align(Alignment.CenterEnd),
+            onClick = {
+                if (size == index + 1) {
+                    viewModel.setOnBoardingCompleted()
+                    navController.navigate("auth") {
+                        popUpTo("onBoarding") { inclusive = true }
+                    }
+                } else {
+                    onNextClicked()
+                }
+            },
             backgroundColor = colorResource(id = R.color.teal_200)
         ) {
-            Text(
-                text = buttontext,
-                fontSize = 10.sp,
-                color = Color.Black
-            )
+            if (size == index + 1) {
+                Text(
+                    text = "GO",
+                    fontSize = 10.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Icon(Icons.Outlined.ArrowForward, contentDescription = null, tint = Color.Black)
+            }
         }
     }
 }
@@ -134,7 +167,6 @@ fun OnBoardingItem(item: OnBoardingItem, index: Int) {
         modifier = Modifier.fillMaxSize()
     ) {
         if (index == 1) {
-
 
             Image(
                 painter = painterResource(id = item.Image),
@@ -190,7 +222,6 @@ fun OnBoardingItem(item: OnBoardingItem, index: Int) {
                 )
             }
 
-
             Image(
                 painter = painterResource(id = item.Image),
                 contentDescription = "Screen1",
@@ -203,4 +234,3 @@ fun OnBoardingItem(item: OnBoardingItem, index: Int) {
         }
     }
 }
-

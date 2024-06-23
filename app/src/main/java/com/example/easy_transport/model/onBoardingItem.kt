@@ -1,4 +1,4 @@
-package com.example.easy_transport.onBoarding
+package com.example.easy_transport.model
 
 import com.example.easy_transport.R
 
