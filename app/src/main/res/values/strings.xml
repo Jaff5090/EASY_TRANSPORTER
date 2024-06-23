@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Onboarding Screeen</string>
+    <string name="title1">Bienvenue à EASY TRANSPORTER</string>
+    <string name="text1">Votre solution de transport facile et rapide</string>
+    <string name="title2">Trouver un Transporteur</string>
+    <string name="text2">Localisez rapidement les options de transport disponibles autour de vous</string>
+    <string name="title3">Livraison Facile</string>
+    <string name="text3">Réservez votre place en quelques clics</string>
+</resources>
